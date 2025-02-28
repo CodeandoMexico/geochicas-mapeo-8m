@@ -1,12 +1,33 @@
 import pandas as pd
 import csv
+from datetime import datetime
+import requests
+from urllib.parse import urlparse
+import os
+import validators
 
-file_path = 'data/encuesta.xlsx'
+def download_image(image_url, save_path):
+    if not validators.url(image_url):
+        return
+    try:
+        response = requests.get(image_url)
+        if response.status_code == 200:
+            with open(save_path, 'wb') as file:
+                file.write(response.content)
+            print(f"Image saved to {save_path}")
+        else:
+            print(f"Failed to download image. Status code: {response.status_code}")
+    except requests.ConnectionError as err:
+        print(f"Connection error occurred: {err}")
+
+
+file_path = 'data/encuesta_20240402.xlsx'
 
 organizaciones = pd.read_excel(file_path, sheet_name='Geochicas 8M 2024')
 actividades = pd.read_excel(file_path, sheet_name='actividades')
 
 cabecera = [
+    'indice',
     'convocatoria',
     'colectiva_nombre',
     'colectiva_url',
@@ -24,7 +45,9 @@ cabecera = [
     'actividad_url_convocatoria'
 ]
 
-with open('data/actividades.csv', 'w', newline='') as file:
+
+today = datetime.now().date().isoformat().replace('-', '')
+with open('data/actividades_' + today + '.csv', 'w', newline='') as file:
     writer = csv.writer(file, delimiter=',', quoting=csv.QUOTE_ALL)
     writer.writerow(cabecera)
 
@@ -35,6 +58,7 @@ with open('data/actividades.csv', 'w', newline='') as file:
                 break
 
         row = [
+            actividad._index,
             '2024',
             organizacion.colectiva_nombre if not pd.isna(organizacion.colectiva_nombre) else '',
             organizacion.colectiva_url if not pd.isna(organizacion.colectiva_url) else '',
@@ -53,3 +77,10 @@ with open('data/actividades.csv', 'w', newline='') as file:
         ]
 
         writer.writerow(row)
+
+        if False: # not pd.isna(actividad.actividad_url_imagen):
+            print('Downloading: ' + actividad.actividad_url_imagen)
+            parsed_url = urlparse(actividad.actividad_url_imagen)
+            file_name = os.path.basename(parsed_url.path)
+            if file_name != '':
+                download_image(image_url=actividad.actividad_url_imagen, save_path='images/' + file_name)
