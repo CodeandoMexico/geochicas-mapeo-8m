@@ -21,9 +21,9 @@ def download_image(image_url, save_path):
         print(f"Connection error occurred: {err}")
 
 
-file_path = 'data/encuesta_20240402.xlsx'
+file_path = 'data/encuesta_20250303.xlsx'
 
-organizaciones = pd.read_excel(file_path, sheet_name='Geochicas 8M 2024')
+organizaciones = pd.read_excel(file_path, sheet_name='GeoChicas 8M 2025')
 actividades = pd.read_excel(file_path, sheet_name='actividades')
 
 cabecera = [
@@ -59,7 +59,7 @@ with open('data/actividades_' + today + '.csv', 'w', newline='') as file:
 
         row = [
             actividad._index,
-            '2024',
+            '2025',
             organizacion.colectiva_nombre if not pd.isna(organizacion.colectiva_nombre) else '',
             organizacion.colectiva_url if not pd.isna(organizacion.colectiva_url) else '',
             organizacion.pais if not pd.isna(organizacion.pais) else '',
