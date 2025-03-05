@@ -39,7 +39,7 @@ for file in excel_files:
         continue # Ignoramos y procesamos el siguiente
 
     file_base_name = os.path.splitext(file)[0]  # Quitamos la extensión
-    csv_filename = f'data/actividades_{file_base_name}.csv'
+    csv_filename = f'data/{file_base_name}_actividades_umap.csv'
 
     creation_timestamp = os.stat(file_path).st_ctime
     creation_date = datetime.datetime.fromtimestamp(creation_timestamp)
