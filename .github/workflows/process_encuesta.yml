@@ -24,3 +24,13 @@ jobs:
 
       - name: Run Excel Processing Script
         run: python procesar.py
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add data/gbfs/
+          git commit -m "Encuesta procesada"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
