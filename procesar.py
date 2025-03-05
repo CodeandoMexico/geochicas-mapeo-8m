@@ -1,30 +1,8 @@
 import pandas as pd
+import datetime
 import csv
-from datetime import datetime
-import requests
-from urllib.parse import urlparse
 import os
-import validators
-
-def download_image(image_url, save_path):
-    if not validators.url(image_url):
-        return
-    try:
-        response = requests.get(image_url)
-        if response.status_code == 200:
-            with open(save_path, 'wb') as file:
-                file.write(response.content)
-            print(f"Image saved to {save_path}")
-        else:
-            print(f"Failed to download image. Status code: {response.status_code}")
-    except requests.ConnectionError as err:
-        print(f"Connection error occurred: {err}")
-
-
-file_path = 'data/encuesta_20250303.xlsx'
-
-organizaciones = pd.read_excel(file_path, sheet_name='GeoChicas 8M 2025')
-actividades = pd.read_excel(file_path, sheet_name='actividades')
+import re
 
 cabecera = [
     'indice',
@@ -42,45 +20,59 @@ cabecera = [
     'actividad_localizacion_precision',
     'actividad_direccion',
     'actividad_url_imagen',
-    'actividad_url_convocatoria'
+    'actividad_url_convocatoria',
+    'actividad_trans_incluyente'
 ]
 
+excel_files = [f for f in os.listdir('data') if f.endswith('.xlsx') or f.endswith('.xls')]
+for file in excel_files:
+    file_path = os.path.join('data', file)
+    print(f"Processing file: {file_path}")
 
-today = datetime.now().date().isoformat().replace('-', '')
-with open('data/actividades_' + today + '.csv', 'w', newline='') as file:
-    writer = csv.writer(file, delimiter=',', quoting=csv.QUOTE_ALL)
-    writer.writerow(cabecera)
+    try:
+        xls = pd.ExcelFile(file_path)
+        organizaciones = pd.read_excel(xls, sheet_name=0)  # Primera hoja
+        actividades = pd.read_excel(xls, sheet_name=1)  # Segunda hoja
 
-    for i, actividad in actividades.iterrows():
+    except Exception as e:
+        print(f"Error al leer {file_path}: {e}")
+        continue # Ignoramos y procesamos el siguiente
 
-        for j, organizacion in organizaciones.iterrows():
-            if organizacion._uuid == actividad._submission__uuid:
-                break
+    file_base_name = os.path.splitext(file)[0]  # Quitamos la extensión
+    csv_filename = f'data/{file_base_name}_actividades.csv'
 
-        row = [
-            actividad._index,
-            '2025',
-            organizacion.colectiva_nombre if not pd.isna(organizacion.colectiva_nombre) else '',
-            organizacion.colectiva_url if not pd.isna(organizacion.colectiva_url) else '',
-            organizacion.pais if not pd.isna(organizacion.pais) else '',
-            organizacion.ciudad if not pd.isna(organizacion.ciudad) else '',
-            actividad.actividad_fecha.date(),
-            actividad.actividad_fecha.time(),
-            actividad.actividad_localizacion,
-            actividad._actividad_localizacion_latitude,
-            actividad._actividad_localizacion_longitude,
-            actividad._actividad_localizacion_altitude,
-            actividad._actividad_localizacion_precision,
-            actividad.actividad_direccion if not pd.isna(actividad.actividad_direccion) else '',
-            "{{" + actividad.actividad_url_imagen + "}}" if not pd.isna(actividad.actividad_url_imagen) else '',
-            actividad.actividad_url_convocatoria if not pd.isna(actividad.actividad_url_convocatoria) else ''
-        ]
+    creation_timestamp = os.stat(file_path).st_ctime
+    creation_date = datetime.datetime.fromtimestamp(creation_timestamp)
+    anyo = creation_date.year
 
-        writer.writerow(row)
+    with open(csv_filename, 'w', newline='', encoding='utf-8') as file:
+        writer = csv.writer(file, delimiter=',', quoting=csv.QUOTE_ALL)
+        writer.writerow(cabecera)
 
-        if False: # not pd.isna(actividad.actividad_url_imagen):
-            print('Downloading: ' + actividad.actividad_url_imagen)
-            parsed_url = urlparse(actividad.actividad_url_imagen)
-            file_name = os.path.basename(parsed_url.path)
-            if file_name != '':
-                download_image(image_url=actividad.actividad_url_imagen, save_path='images/' + file_name)
+        for i, actividad in actividades.iterrows():
+
+            for j, organizacion in organizaciones.iterrows():
+                if organizacion._uuid == actividad._submission__uuid:
+                    break
+
+            row = [
+                actividad._index,
+                anyo,
+                organizacion.colectiva_nombre if not pd.isna(organizacion.colectiva_nombre) else '',
+                organizacion.colectiva_url if not pd.isna(organizacion.colectiva_url) else '',
+                organizacion.pais if not pd.isna(organizacion.pais) else '',
+                organizacion.ciudad if not pd.isna(organizacion.ciudad) else '',
+                actividad.actividad_fecha.date() if not pd.isna(actividad.actividad_fecha) else '',
+                actividad.actividad_fecha.time(),
+                actividad.actividad_localizacion,
+                actividad._actividad_localizacion_latitude,
+                actividad._actividad_localizacion_longitude,
+                actividad._actividad_localizacion_altitude,
+                actividad._actividad_localizacion_precision,
+                actividad.actividad_direccion if not pd.isna(actividad.actividad_direccion) else '',
+                "{{" + actividad.actividad_url_imagen + "}}" if not pd.isna(actividad.actividad_url_imagen) else '',
+                actividad.actividad_url_convocatoria if not pd.isna(actividad.actividad_url_convocatoria) else '',
+                actividad.actividad_trans_incluyente if not pd.isna(actividad.actividad_trans_incluyente) else ''
+            ]
+
+            writer.writerow(row)
