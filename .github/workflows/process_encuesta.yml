@@ -1,0 +1,26 @@
+name: Procesado de la encuesta GeoChicas 8M
+
+on:
+  push:
+    paths:
+      - 'data/**'  # Cuando hay commit en la carpeta data
+  workflow_dispatch:  # Ejecución manual
+
+jobs:
+  process-excel:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set Up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+
+      - name: Install Dependencies
+        run: pip install pandas requests validators openpyxl
+
+      - name: Run Excel Processing Script
+        run: python procesar.py
